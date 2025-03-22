@@ -1,5 +1,8 @@
 use log::error;
 
+use smallvec::smallvec;
+use smallvec::SmallVec;
+
 use crate::{RadarDriver, RadarLLFrame};
 
 #[derive(Debug, Clone, Copy)]
@@ -61,14 +64,14 @@ impl RadarDriver for Ld2450Command {
         }
     }
 
-    fn serialize_data(&self) -> Vec<u8> {
+    fn serialize_data(&self) -> SmallVec<[u8; 16]> {
         match self {
-            Ld2450Command::EnableConfiguration => vec![0x01, 0x00],
-            Ld2450Command::EndConfiguration => vec![],
-            Ld2450Command::SingleTargetTracking => vec![],
-            Ld2450Command::MultiTargetTracking => vec![],
-            Ld2450Command::QueryTrackingMode => vec![],
-            Ld2450Command::FirmwareVersion => vec![],
+            Ld2450Command::EnableConfiguration => smallvec![0x01, 0x00],
+            Ld2450Command::EndConfiguration => smallvec![],
+            Ld2450Command::SingleTargetTracking => smallvec![],
+            Ld2450Command::MultiTargetTracking => smallvec![],
+            Ld2450Command::QueryTrackingMode => smallvec![],
+            Ld2450Command::FirmwareVersion => smallvec![],
             Ld2450Command::BaudRate(baud_rate) => {
                 let br: u16 = match baud_rate {
                     9600 => 0x0001,
@@ -82,16 +85,16 @@ impl RadarDriver for Ld2450Command {
                     _ => panic!("Unsupported baud rate"),
                 };
 
-                vec![br as u8, (br >> 8) as u8]
+                smallvec![br as u8, (br >> 8) as u8]
             }
-            Ld2450Command::FactoryReset => vec![],
-            Ld2450Command::Reboot => vec![],
-            Ld2450Command::BluetoothOn => vec![0x01, 0x00],
-            Ld2450Command::BluetoothOff => vec![0x00, 0x00],
-            Ld2450Command::MacAddress => vec![0x01, 0x00],
-            Ld2450Command::QueryZoneFiltering => vec![],
+            Ld2450Command::FactoryReset => smallvec![],
+            Ld2450Command::Reboot => smallvec![],
+            Ld2450Command::BluetoothOn => smallvec![0x01, 0x00],
+            Ld2450Command::BluetoothOff => smallvec![0x00, 0x00],
+            Ld2450Command::MacAddress => smallvec![0x01, 0x00],
+            Ld2450Command::QueryZoneFiltering => smallvec![],
             Ld2450Command::SetZoneFiltering(filter_type, regions) => {
-                let mut data = vec![];
+                let mut data = smallvec![];
 
                 // Add filter type
                 data.push(*filter_type as u8);
@@ -145,7 +148,7 @@ pub struct TargetData {
 
 #[derive(Debug)]
 pub struct Ld2450TargetData {
-    pub targets: Vec<TargetData>,
+    pub targets: SmallVec<[TargetData; 3]>,
 }
 
 impl Ld2450TargetData {
@@ -156,7 +159,7 @@ impl Ld2450TargetData {
             return None;
         }
 
-        let mut targets = Vec::new();
+        let mut targets = SmallVec::new();
 
         // Process each target (up to 3 targets)
         for i in 0..3 {
