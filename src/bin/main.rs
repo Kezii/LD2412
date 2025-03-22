@@ -15,9 +15,9 @@ use std::io::Write;
 use std::time::Duration;
 use std::{io, thread};
 
-use log::info;
-use plotters::data;
-use LD2412::EngineeringModeData;
+use log::{debug, info, warn};
+use LD2412::ld2412::{Ld2412Command, Ld2412TargetData, RadarResolution};
+use LD2412::RadarLLFrame;
 
 fn main() {
     env_logger::init();
@@ -30,37 +30,43 @@ fn main() {
     let mut clone = port.try_clone().expect("Failed to clone");
 
     fn send_command(port: &mut Box<dyn serialport::SerialPort>, command: &[u8]) {
+        debug!("Sending command: {:x?}", command);
         port.write_all(command)
             .expect("Failed to write to serial port");
+
+        port.flush().expect("Failed to flush serial port");
         thread::sleep(Duration::from_millis(100));
     }
 
     thread::spawn(move || {
-        return;
         thread::sleep(Duration::from_millis(1000));
-
-        send_command(&mut clone, &LD2412::enable_configuration());
-
-        send_command(&mut clone, &LD2412::read_resolution());
 
         send_command(
             &mut clone,
-            &LD2412::set_resolution(LD2412::RadarResolution::cm25),
+            &Ld2412Command::EnableConfiguration.to_llframe().serialize(),
         );
 
-        send_command(&mut clone, &LD2412::read_resolution());
+        send_command(
+            &mut clone,
+            &Ld2412Command::Resolution(RadarResolution::Cm25)
+                .to_llframe()
+                .serialize(),
+        );
 
-        send_command(&mut clone, &LD2412::read_firmware_version());
+        send_command(
+            &mut clone,
+            &Ld2412Command::FirmwareVersion.to_llframe().serialize(),
+        );
 
-        send_command(&mut clone, &LD2412::read_mac_address());
+        send_command(
+            &mut clone,
+            &Ld2412Command::EngineeringModeOn.to_llframe().serialize(),
+        );
 
-        send_command(&mut clone, &LD2412::read_motion_sensitivity());
-
-        send_command(&mut clone, &LD2412::read_static_sensitivity());
-
-        send_command(&mut clone, &LD2412::set_enable_engineering_mode());
-
-        send_command(&mut clone, &LD2412::end_configuration());
+        send_command(
+            &mut clone,
+            &Ld2412Command::EndConfiguration.to_llframe().serialize(),
+        );
     });
 
     let mut buffer: [u8; 1] = [0; 1];
@@ -71,36 +77,33 @@ fn main() {
     loop {
         match port.read(&mut buffer) {
             Ok(_) => {
+                //debug!("{:x?}", buffer);
                 pers_buffer.extend_from_slice(&buffer);
-
-                //trace!("{:x?}", pers_buffer);
-
-                // data frame format is like
-                // F4 F3 F2 F1 len_l len_h data F8 F7 F6 F5
-                if pers_buffer.ends_with(&[0xF8, 0xF7, 0xF6, 0xF5]) {
-                    let data = LD2412::eat_packet(&pers_buffer);
-
-                    match data {
-                        Ok(data) => {
-                            println!("{:#?}", data.basic_target_data);
-                            if let Some(eng_data) = data.engineering_mode_data {
-                                println!("{:#?}", eng_data);
-                            }
-                        }
-
-                        Err(e) => {
-                            eprintln!("{:?}", e);
-                        }
-                    }
-
+                if pers_buffer.len() > 100 {
+                    warn!("overrun, clearing");
                     pers_buffer.clear();
                 }
 
-                // ack frame format is like
-                // FD FC FB FA data 04 03 02 01
-                if pers_buffer.ends_with(&[0x04, 0x03, 0x02, 0x01]) {
-                    let ack = LD2412::eat_ack(&pers_buffer);
-                    println!("{:#?}", ack);
+                let frame = RadarLLFrame::deserialize(&pers_buffer);
+
+                if let Some(frame) = frame {
+                    info!("{:?}", frame);
+
+                    match frame {
+                        RadarLLFrame::CommandAckFrame(opcode, data) => {
+                            info!("{:x?} {:?}", opcode, data);
+                        }
+                        RadarLLFrame::TargetFrame(data) => {
+                            let data = Ld2412TargetData::deserialize(&data);
+                            if let Some(data) = data {
+                                info!("{:#?}", data.basic_target_data);
+                                if let Some(eng_data) = data.engineering_mode_data {
+                                    info!("{:#?}", eng_data);
+                                }
+                            }
+                        }
+                    }
+
                     pers_buffer.clear();
                 }
             }
