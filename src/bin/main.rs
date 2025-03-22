@@ -17,13 +17,18 @@ use std::{io, thread};
 
 use log::{debug, info, warn};
 use LD2412::ld2412::{Ld2412Command, Ld2412TargetData, RadarResolution};
+use LD2412::ld2450::Ld2450TargetData;
 use LD2412::RadarLLFrame;
 
 fn main() {
     env_logger::init();
+
+    //let baud_rate = 115200; // LD2412 baud rate
+    let baud_rate = 256000; // LD2450 baud rate
+
     // Open the first serialport available.
     let port_name = &serialport::available_ports().expect("No serial port")[0].port_name;
-    let mut port = serialport::new(port_name, 115200)
+    let mut port = serialport::new(port_name, baud_rate)
         .open()
         .expect("Failed to open serial port");
 
@@ -38,36 +43,36 @@ fn main() {
         thread::sleep(Duration::from_millis(100));
     }
 
-    thread::spawn(move || {
-        thread::sleep(Duration::from_millis(1000));
+    // thread::spawn(move || {
+    //     thread::sleep(Duration::from_millis(1000));
 
-        send_command(
-            &mut clone,
-            &Ld2412Command::EnableConfiguration.to_llframe().serialize(),
-        );
+    //     send_command(
+    //         &mut clone,
+    //         &Ld2412Command::EnableConfiguration.to_llframe().serialize(),
+    //     );
 
-        send_command(
-            &mut clone,
-            &Ld2412Command::Resolution(RadarResolution::Cm25)
-                .to_llframe()
-                .serialize(),
-        );
+    //     send_command(
+    //         &mut clone,
+    //         &Ld2412Command::Resolution(RadarResolution::Cm25)
+    //             .to_llframe()
+    //             .serialize(),
+    //     );
 
-        send_command(
-            &mut clone,
-            &Ld2412Command::FirmwareVersion.to_llframe().serialize(),
-        );
+    //     send_command(
+    //         &mut clone,
+    //         &Ld2412Command::FirmwareVersion.to_llframe().serialize(),
+    //     );
 
-        send_command(
-            &mut clone,
-            &Ld2412Command::EngineeringModeOn.to_llframe().serialize(),
-        );
+    //     send_command(
+    //         &mut clone,
+    //         &Ld2412Command::EngineeringModeOn.to_llframe().serialize(),
+    //     );
 
-        send_command(
-            &mut clone,
-            &Ld2412Command::EndConfiguration.to_llframe().serialize(),
-        );
-    });
+    //     send_command(
+    //         &mut clone,
+    //         &Ld2412Command::EndConfiguration.to_llframe().serialize(),
+    //     );
+    // });
 
     let mut buffer: [u8; 1] = [0; 1];
     let mut pers_buffer = Vec::new();
@@ -100,6 +105,12 @@ fn main() {
                                 if let Some(eng_data) = data.engineering_mode_data {
                                     info!("{:#?}", eng_data);
                                 }
+                            }
+                        }
+                        RadarLLFrame::TargetFrame2D(data) => {
+                            let data = Ld2450TargetData::deserialize(&data);
+                            if let Some(data) = data {
+                                info!("{:#?}", data);
                             }
                         }
                     }

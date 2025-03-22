@@ -1,6 +1,7 @@
 use log::warn;
 
 pub mod ld2412;
+pub mod ld2450;
 
 pub trait RadarDriver {
     fn get_opcode(&self) -> u16;
@@ -9,8 +10,12 @@ pub trait RadarDriver {
 
 #[derive(Debug)]
 pub enum RadarLLFrame {
+    /// Command and Acknowledgement frame, LD2412 and LD2450
     CommandAckFrame(u16, Vec<u8>),
+    /// LD2412 1D target data
     TargetFrame(Vec<u8>),
+    /// LD2450 2D target data
+    TargetFrame2D(Vec<u8>),
 }
 
 impl RadarLLFrame {
@@ -27,7 +32,7 @@ impl RadarLLFrame {
 
                 buffer
             }
-            RadarLLFrame::TargetFrame(_) => {
+            _ => {
                 panic!(
                     "you are not supposed to serialize target data, it is only for deserialization"
                 )
@@ -58,6 +63,10 @@ impl RadarLLFrame {
                 }
 
                 Some(RadarLLFrame::TargetFrame(intraframe.to_vec()))
+            }
+
+            [0xAA, 0xFF, 0x03, 0x00, intraframe @ .., 0x55, 0xCC] => {
+                Some(RadarLLFrame::TargetFrame2D(intraframe.to_vec()))
             }
 
             _ => None,
