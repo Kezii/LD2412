@@ -16,9 +16,9 @@ use std::time::Duration;
 use std::{io, thread};
 
 use log::{debug, info, warn};
-use LD2412::ld2412::{Ld2412Command, Ld2412TargetData, RadarResolution};
-use LD2412::ld2450::Ld2450TargetData;
-use LD2412::RadarLLFrame;
+use LD24xx::ld2412::{Ld2412Command, Ld2412TargetData, RadarResolution};
+use LD24xx::ld2450::Ld2450TargetData;
+use LD24xx::RadarLLFrame;
 
 fn main() {
     env_logger::init();
@@ -50,23 +50,25 @@ fn main() {
     //         &mut clone,
     //         &Ld2412Command::EnableConfiguration.to_llframe().serialize(),
     //     );
+    //     thread::sleep(Duration::from_millis(100));
 
-    //     send_command(
-    //         &mut clone,
-    //         &Ld2412Command::Resolution(RadarResolution::Cm25)
-    //             .to_llframe()
-    //             .serialize(),
-    //     );
+    //     // send_command(
+    //     //     &mut clone,
+    //     //     &Ld2412Command::Resolution(RadarResolution::Cm25)
+    //     //         .to_llframe()
+    //     //         .serialize(),
+    //     // );
 
-    //     send_command(
-    //         &mut clone,
-    //         &Ld2412Command::FirmwareVersion.to_llframe().serialize(),
-    //     );
+    //     // send_command(
+    //     //     &mut clone,
+    //     //     &Ld2412Command::FirmwareVersion.to_llframe().serialize(),
+    //     // );
 
     //     send_command(
     //         &mut clone,
     //         &Ld2412Command::EngineeringModeOn.to_llframe().serialize(),
     //     );
+    //     thread::sleep(Duration::from_millis(100));
 
     //     send_command(
     //         &mut clone,
@@ -86,13 +88,14 @@ fn main() {
                 pers_buffer.extend_from_slice(&buffer);
                 if pers_buffer.len() > 100 {
                     warn!("overrun, clearing");
+                    port.read_to_end(&mut pers_buffer).ok();
                     pers_buffer.clear();
                 }
 
                 let frame = RadarLLFrame::deserialize(&pers_buffer);
 
                 if let Some(frame) = frame {
-                    info!("{:?}", frame);
+                    info!("{:x?}", frame);
 
                     match frame {
                         RadarLLFrame::CommandAckFrame(opcode, data) => {
