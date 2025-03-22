@@ -1,16 +1,3 @@
-//! Duplex example
-//!
-//! This example tests the ability to clone a serial port. It works by creating
-//! a new file descriptor, and therefore a new `SerialPort` object that's safe
-//! to send to a new thread.
-//!
-//! This example selects the first port on the system, clones the port into a child
-//! thread that writes data to the port every second. While this is running the parent
-//! thread continually reads from the port.
-//!
-//! To test this, have a physical or virtual loopback device connected as the
-//! only port in the system.
-
 use std::io::Write;
 use std::time::Duration;
 use std::{io, thread};
