@@ -9,7 +9,7 @@ The library is no_std and ready to be used in embedded systems.
 
 ## Examples
 
-`RUST_LOG=trace cargo run --bin main`
+`RUST_LOG=trace cargo run --example main`
 
 Example output from LD2450
 
