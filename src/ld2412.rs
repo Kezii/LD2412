@@ -1,6 +1,5 @@
 use crate::{RadarDriver, RadarLLFrame};
 use log::error;
-use smallvec::smallvec;
 use smallvec::SmallVec;
 
 #[derive(Debug, Clone, Copy)]
