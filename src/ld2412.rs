@@ -70,37 +70,45 @@ impl RadarDriver for Ld2412Command {
         }
     }
 
-    fn serialize_data(&self) -> SmallVec<[u8; 16]> {
+    fn serialize_data(&self, data: &mut SmallVec<[u8; 16]>) {
         match self {
-            Ld2412Command::EnableConfiguration => smallvec![0x01, 0x00],
-            Ld2412Command::EndConfiguration => smallvec![],
-            Ld2412Command::Resolution(resolution) => {
-                smallvec![*resolution as u8, 0x00, 0x00, 0x00, 0x00, 0x00]
+            Ld2412Command::EnableConfiguration => {
+                data.extend_from_slice(&[0x01, 0x00]);
             }
-            Ld2412Command::ReadResolution => smallvec![],
+            Ld2412Command::EndConfiguration => {}
+            Ld2412Command::Resolution(resolution) => {
+                data.extend_from_slice(&[*resolution as u8, 0x00, 0x00, 0x00, 0x00, 0x00]);
+            }
+            Ld2412Command::ReadResolution => {}
             Ld2412Command::BasicParameters(
                 min_distance,
                 max_distance,
                 unoccupied_duration,
                 polarity,
-            ) => smallvec![
-                *min_distance,
-                *max_distance,
-                (*unoccupied_duration & 0xFF) as u8,
-                ((*unoccupied_duration >> 8) & 0xFF) as u8,
-                if *polarity { 0x01 } else { 0x00 },
-                0x00,
-            ],
-            Ld2412Command::ReadBasicParameters => smallvec![],
-            Ld2412Command::EngineeringModeOn => smallvec![],
-            Ld2412Command::EngineeringModeOff => smallvec![],
-            Ld2412Command::MotionSensitivity(sensitivity) => SmallVec::from_slice(sensitivity),
-            Ld2412Command::ReadMotionSensitivity => smallvec![],
-            Ld2412Command::StaticSensitivity(sensitivity) => SmallVec::from_slice(sensitivity),
-            Ld2412Command::ReadStaticSensitivity => smallvec![],
-            Ld2412Command::EnterBackgroundCorrection => smallvec![],
-            Ld2412Command::ReadBackgroundCorrection => smallvec![],
-            Ld2412Command::FirmwareVersion => smallvec![],
+            ) => {
+                data.extend_from_slice(&[
+                    *min_distance,
+                    *max_distance,
+                    (*unoccupied_duration & 0xFF) as u8,
+                    ((*unoccupied_duration >> 8) & 0xFF) as u8,
+                    if *polarity { 0x01 } else { 0x00 },
+                    0x00,
+                ]);
+            }
+            Ld2412Command::ReadBasicParameters => {}
+            Ld2412Command::EngineeringModeOn => {}
+            Ld2412Command::EngineeringModeOff => {}
+            Ld2412Command::MotionSensitivity(sensitivity) => {
+                data.extend_from_slice(sensitivity);
+            }
+            Ld2412Command::ReadMotionSensitivity => {}
+            Ld2412Command::StaticSensitivity(sensitivity) => {
+                data.extend_from_slice(sensitivity);
+            }
+            Ld2412Command::ReadStaticSensitivity => {}
+            Ld2412Command::EnterBackgroundCorrection => {}
+            Ld2412Command::ReadBackgroundCorrection => {}
+            Ld2412Command::FirmwareVersion => {}
             Ld2412Command::BaudRate(baud_rate) => {
                 let br: u16 = match baud_rate {
                     9600 => 0x0001,
@@ -114,22 +122,32 @@ impl RadarDriver for Ld2412Command {
                     _ => panic!("Unknown baud rate"),
                 };
 
-                smallvec![br as u8, (br >> 8) as u8]
+                data.extend_from_slice(&[br as u8, (br >> 8) as u8]);
             }
-            Ld2412Command::FactoryReset => smallvec![],
-            Ld2412Command::Reboot => smallvec![],
-            Ld2412Command::BluetoothOn => smallvec![0x01, 0x00],
-            Ld2412Command::BluetoothOff => smallvec![0x00, 0x00],
-            Ld2412Command::MacAddress => smallvec![0x01, 0x00],
-            Ld2412Command::LightsensorMode(mode, threshold) => smallvec![*mode, *threshold],
-            Ld2412Command::ReadLightsensorMode => smallvec![],
+            Ld2412Command::FactoryReset => {}
+            Ld2412Command::Reboot => {}
+            Ld2412Command::BluetoothOn => {
+                data.extend_from_slice(&[0x01, 0x00]);
+            }
+            Ld2412Command::BluetoothOff => {
+                data.extend_from_slice(&[0x00, 0x00]);
+            }
+            Ld2412Command::MacAddress => {
+                data.extend_from_slice(&[0x01, 0x00]);
+            }
+            Ld2412Command::LightsensorMode(mode, threshold) => {
+                data.extend_from_slice(&[*mode, *threshold]);
+            }
+            Ld2412Command::ReadLightsensorMode => {}
         }
     }
 }
 
 impl Ld2412Command {
     pub fn to_llframe(&self) -> RadarLLFrame {
-        RadarLLFrame::CommandAckFrame(self.get_opcode(), self.serialize_data())
+        let mut data = SmallVec::new();
+        self.serialize_data(&mut data);
+        RadarLLFrame::CommandAckFrame(self.get_opcode(), data)
     }
 }
 

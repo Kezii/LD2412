@@ -8,7 +8,7 @@ pub mod ld2450;
 
 pub trait RadarDriver {
     fn get_opcode(&self) -> u16;
-    fn serialize_data(&self) -> SmallVec<[u8; 16]>;
+    fn serialize_data(&self, data: &mut SmallVec<[u8; 16]>);
 }
 
 #[derive(Debug)]

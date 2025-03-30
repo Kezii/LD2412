@@ -64,14 +64,16 @@ impl RadarDriver for Ld2450Command {
         }
     }
 
-    fn serialize_data(&self) -> SmallVec<[u8; 16]> {
+    fn serialize_data(&self, data: &mut SmallVec<[u8; 16]>) {
         match self {
-            Ld2450Command::EnableConfiguration => smallvec![0x01, 0x00],
-            Ld2450Command::EndConfiguration => smallvec![],
-            Ld2450Command::SingleTargetTracking => smallvec![],
-            Ld2450Command::MultiTargetTracking => smallvec![],
-            Ld2450Command::QueryTrackingMode => smallvec![],
-            Ld2450Command::FirmwareVersion => smallvec![],
+            Ld2450Command::EnableConfiguration => {
+                data.extend_from_slice(&[0x01, 0x00]);
+            }
+            Ld2450Command::EndConfiguration => {}
+            Ld2450Command::SingleTargetTracking => {}
+            Ld2450Command::MultiTargetTracking => {}
+            Ld2450Command::QueryTrackingMode => {}
+            Ld2450Command::FirmwareVersion => {}
             Ld2450Command::BaudRate(baud_rate) => {
                 let br: u16 = match baud_rate {
                     9600 => 0x0001,
@@ -85,17 +87,21 @@ impl RadarDriver for Ld2450Command {
                     _ => panic!("Unsupported baud rate"),
                 };
 
-                smallvec![br as u8, (br >> 8) as u8]
+                data.extend_from_slice(&[br as u8, (br >> 8) as u8]);
             }
-            Ld2450Command::FactoryReset => smallvec![],
-            Ld2450Command::Reboot => smallvec![],
-            Ld2450Command::BluetoothOn => smallvec![0x01, 0x00],
-            Ld2450Command::BluetoothOff => smallvec![0x00, 0x00],
-            Ld2450Command::MacAddress => smallvec![0x01, 0x00],
-            Ld2450Command::QueryZoneFiltering => smallvec![],
+            Ld2450Command::FactoryReset => {}
+            Ld2450Command::Reboot => {}
+            Ld2450Command::BluetoothOn => {
+                data.extend_from_slice(&[0x01, 0x00]);
+            }
+            Ld2450Command::BluetoothOff => {
+                data.extend_from_slice(&[0x00, 0x00]);
+            }
+            Ld2450Command::MacAddress => {
+                data.extend_from_slice(&[0x01, 0x00]);
+            }
+            Ld2450Command::QueryZoneFiltering => {}
             Ld2450Command::SetZoneFiltering(filter_type, regions) => {
-                let mut data = smallvec![];
-
                 // Add filter type
                 data.push(*filter_type as u8);
                 data.push((*filter_type >> 8) as u8);
@@ -118,8 +124,6 @@ impl RadarDriver for Ld2450Command {
                     data.push(region.3 as u8);
                     data.push((region.3 >> 8) as u8);
                 }
-
-                data
             }
         }
     }
@@ -127,7 +131,9 @@ impl RadarDriver for Ld2450Command {
 
 impl Ld2450Command {
     pub fn to_llframe(&self) -> RadarLLFrame {
-        RadarLLFrame::CommandAckFrame(self.get_opcode(), self.serialize_data())
+        let mut data = SmallVec::new();
+        self.serialize_data(&mut data);
+        RadarLLFrame::CommandAckFrame(self.get_opcode(), data)
     }
 }
 
